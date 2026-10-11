@@ -1,4 +1,4 @@
-# 🐾 PetShop — ElasTech Java
+# PetShop — ElasTech Java
 
 Projeto desenvolvido durante o bootcamp ElasTech Java para praticar os fundamentos da linguagem Java e Programação Orientada a Objetos.
 
@@ -11,30 +11,34 @@ Projeto desenvolvido durante o bootcamp ElasTech Java para praticar os fundament
 - Execução de serviços de banho, tosa, consulta e vacina.
 - Validação de dados e tratamento de entradas inválidas.
 
+## Demonstração
+
+O sistema é executado pelo terminal e apresenta um menu interativo para acessar as funcionalidades.
+
+![Demonstração do PetShop no terminal](docs/terminal-petshop.png)
+
 ## Tecnologias
 
 - Java
 - IntelliJ IDEA
 
-## 📚 Conceitos praticados
+## Conceitos praticados
 
-✅ Variáveis, tipos de dados e `printf`
-✅ `Scanner`
-✅ Condicionais (`if` e `switch`)
-✅ Laços de repetição (`while` e `for`)
-✅ Arrays
-✅ Strings e seus métodos
-✅ Classes e objetos
-✅ Métodos com parâmetros e retorno
-✅ Tratamento de exceções
-✅ `for-each`
-✅ `Set` (sem elementos repetidos)
-✅ `Queue` (fila)
-✅ `ArrayList`
-✅ Interfaces e `implements`
-✅ Herança e `extends`
-✅ `@Override`
-✅ Polimorfismo e sobrecarga de métodos
+- Variáveis, tipos de dados e `printf`
+- `Scanner`
+- Condicionais (`if` e `switch`)
+- Laços de repetição (`while` e `for`)
+- Arrays e `ArrayList`
+- Strings e seus métodos
+- Classes e objetos
+- Métodos com parâmetros e retorno
+- Tratamento de exceções
+- `for-each`
+- `Set` e `Queue`
+- Interfaces e `implements`
+- Herança e `extends`
+- `@Override`
+- Polimorfismo e sobrecarga de métodos
 
 ## Objetivo
 
