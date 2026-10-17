@@ -1,16 +1,37 @@
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashSet;
+package br.com.petshop;
+
 import java.util.InputMismatchException;
+import java.util.List;
 import java.util.Scanner;
+import java.util.TreeSet;
+
+import br.com.petshop.dominio.Pet;
+import br.com.petshop.dominio.Porte;
+import br.com.petshop.dominio.Servico;
+import br.com.petshop.fabrica.PetFactory;
+import br.com.petshop.fila.FilaBanho;
+import br.com.petshop.repositorio.MemoriaPetRepository;
+import br.com.petshop.repositorio.PetRepository;
+import br.com.petshop.servicos.Banho;
+import br.com.petshop.servicos.Consulta;
+import br.com.petshop.servicos.Tosa;
+import br.com.petshop.servicos.Vacina;
 
 public class PetShop {
+
+    private static final PetFactory PET_FACTORY = new PetFactory();
+    private static final List<Servico> SERVICOS = List.of(
+            new Banho(),
+            new Tosa(),
+            new Consulta(),
+            new Vacina()
+    );
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
 
-        ArrayList<Pet> lista = new ArrayList<>();
-        ArrayDeque<String> fila = new ArrayDeque<>();
+        PetRepository repository = new MemoriaPetRepository();
+        FilaBanho fila = new FilaBanho();
 
         int opcao = -1;
 
@@ -27,23 +48,23 @@ public class PetShop {
                         break;
 
                     case 1:
-                        cadastrarPet(sc, lista);
+                        cadastrarPet(sc, repository);
                         break;
 
                     case 2:
-                        listarPets(lista);
+                        listarPets(repository);
                         break;
 
                     case 3:
-                        buscarPet(sc, lista);
+                        buscarPet(sc, repository);
                         break;
 
                     case 4:
-                        mostrarEspecies(lista);
+                        mostrarEspecies(repository);
                         break;
 
                     case 5:
-                        entrarNaFila(sc, fila);
+                        entrarNaFila(sc, fila, repository);
                         break;
 
                     case 6:
@@ -51,15 +72,15 @@ public class PetShop {
                         break;
 
                     case 7:
-                        executarServicos(sc);
+                        executarServicos(sc, repository);
                         break;
 
                     case 8:
-                        mostrarQuantidadePets(lista.size());
+                        mostrarQuantidadePets(repository.contar());
                         break;
 
                     case 9:
-                        filtrarPetsPorPorte(sc, lista);
+                        filtrarPetsPorPorte(sc, repository);
                         break;
 
                     case 10:
@@ -97,7 +118,7 @@ public class PetShop {
     }
 
     public static void cadastrarPet(
-            Scanner sc, ArrayList<Pet> lista) {
+            Scanner sc, PetRepository repository) {
 
         System.out.print("Nome do pet: ");
         String nome = sc.nextLine().trim();
@@ -115,18 +136,6 @@ public class PetShop {
             return;
         }
 
-        Pet novoPet;
-
-        if (especie.equalsIgnoreCase("Cachorro")) {
-            novoPet = new Cachorro();
-            especie = "Cachorro";
-        } else if (especie.equalsIgnoreCase("Gato")) {
-            novoPet = new Gato();
-            especie = "Gato";
-        } else {
-            novoPet = new Pet();
-        }
-
         System.out.print("Peso em kg: ");
 
         double peso;
@@ -140,54 +149,46 @@ public class PetShop {
             return;
         }
 
-        if (peso <= 0 || Double.isInfinite(peso)
-                || Double.isNaN(peso)) {
-            System.out.println("O peso deve ser maior que zero.");
-            return;
+        try {
+            Pet novoPet = PET_FACTORY.criar(nome, especie, peso);
+
+            repository.salvar(novoPet);
+
+            System.out.println(
+                    "Pet cadastrado! Agora são "
+                            + repository.contar() + " pet(s)."
+            );
+        } catch (IllegalArgumentException e) {
+            System.out.println(e.getMessage());
         }
-
-        novoPet.nome = nome;
-        novoPet.especie = especie;
-        novoPet.peso = peso;
-        novoPet.porte = novoPet.definirPorte();
-
-        lista.add(novoPet);
-
-        System.out.println(
-                "Pet cadastrado! Agora são "
-                        + lista.size() + " pet(s)."
-        );
     }
 
-    public static void listarPets(ArrayList<Pet> lista) {
-        if (lista.isEmpty()) {
+    public static void listarPets(PetRepository repository) {
+        if (repository.estaVazio()) {
             System.out.println("Nenhum pet cadastrado.");
             return;
         }
 
         System.out.println("\n----- PETS CADASTRADOS -----");
 
-        for (Pet pet : lista) {
-            mostrarFicha(pet);
+        for (Pet pet : repository.listarTodos()) {
             mostrarFicha(pet, "FICHA DO PET");
             pet.emitirSom();
         }
     }
 
     public static void buscarPet(
-            Scanner sc, ArrayList<Pet> lista) {
+            Scanner sc, PetRepository repository) {
 
         System.out.print("Qual pet você procura? ");
         String busca = sc.nextLine();
 
         boolean achou = false;
 
-        for (Pet pet : lista) {
-            if (pet.nome.equalsIgnoreCase(busca)) {
-                System.out.println("\n---- PET ENCONTRADO ----");
-                mostrarDadosPet(pet);
-                achou = true;
-            }
+        for (Pet pet : repository.buscarPorNome(busca)) {
+            System.out.println("\n---- PET ENCONTRADO ----");
+            mostrarDadosPet(pet);
+            achou = true;
         }
 
         if (!achou) {
@@ -196,37 +197,27 @@ public class PetShop {
     }
 
     public static void mostrarDadosPet(Pet pet) {
-        System.out.println("==== FICHA DO PET ====");
-        System.out.println(
-                "Nome: " + pet.nome
-                        + ", Espécie: " + pet.especie
-                        + ", Peso: " + pet.peso + " kg"
-                        + ", Porte: " + pet.porte
-        );
-    }
-
-    public static void mostrarFicha(Pet pet) {
-        System.out.println("Nome: " + pet.nome);
+        mostrarFicha(pet, "FICHA DO PET");
     }
 
     public static void mostrarFicha(Pet pet, String titulo) {
         System.out.println("=== " + titulo + " ===");
-        System.out.println("Nome: " + pet.nome);
-        System.out.println("Espécie: " + pet.especie);
-        System.out.println("Peso: " + pet.peso + " kg");
-        System.out.println("Porte: " + pet.porte);
+        System.out.println("Nome: " + pet.getNome());
+        System.out.println("Espécie: " + pet.getEspecie());
+        System.out.println("Peso: " + pet.getPeso() + " kg");
+        System.out.println("Porte: " + pet.getPorte().getDescricao());
     }
 
-    public static void mostrarEspecies(ArrayList<Pet> lista) {
-        if (lista.isEmpty()) {
+    public static void mostrarEspecies(PetRepository repository) {
+        if (repository.estaVazio()) {
             System.out.println("Nenhum pet cadastrado.");
             return;
         }
 
-        HashSet<String> especies = new HashSet<>();
+        TreeSet<String> especies = new TreeSet<>();
 
-        for (Pet pet : lista) {
-            especies.add(pet.especie.toLowerCase().trim());
+        for (Pet pet : repository.listarTodos()) {
+            especies.add(pet.getEspecie().toLowerCase().trim());
         }
 
         System.out.println("\n---- ESPÉCIES CADASTRADAS ----");
@@ -241,46 +232,59 @@ public class PetShop {
     }
 
     public static void entrarNaFila(
-            Scanner sc, ArrayDeque<String> fila) {
+            Scanner sc, FilaBanho fila, PetRepository repository) {
 
         System.out.print("Nome do pet pra entrar na fila: ");
-        String nome = sc.nextLine();
+        String nome = sc.nextLine().trim();
 
-        fila.add(nome);
+        if (nome.isEmpty()) {
+            System.out.println("O nome do pet não pode ficar vazio.");
+            return;
+        }
 
-        System.out.println(nome + " entrou na fila.");
-        System.out.println("Fila agora: " + fila);
+        var petsEncontrados = repository.buscarPorNome(nome);
+
+        if (petsEncontrados.isEmpty()) {
+            System.out.println("Pet não encontrado.");
+            return;
+        }
+
+        Pet pet = petsEncontrados.get(0);
+        fila.adicionar(pet);
+
+        System.out.println(pet.getNome() + " entrou na fila.");
+        System.out.println("Fila agora: " + nomesDaFila(fila));
     }
 
-    public static void atenderProximo(ArrayDeque<String> fila) {
-        if (fila.isEmpty()) {
+    public static void atenderProximo(FilaBanho fila) {
+        if (fila.estaVazia()) {
             System.out.println("A fila de banho está vazia.");
             return;
         }
 
-        String proximo = fila.peek();
+        Pet proximo = fila.proximo();
 
-        System.out.println("Próximo da fila: " + proximo);
-        System.out.println("Atendendo " + proximo + "...");
+        System.out.println("Próximo da fila: " + proximo.getNome());
+        System.out.println("Atendendo " + proximo.getNome() + "...");
 
-        fila.poll();
-
-        System.out.println("Fila agora: " + fila);
+        System.out.println("Fila agora: " + nomesDaFila(fila));
     }
 
-    public static void executarServicos(Scanner sc) {
+    public static void executarServicos(
+            Scanner sc, PetRepository repository) {
         System.out.print("Nome do pet: ");
-        String nomePet = sc.nextLine();
+        String nomePet = sc.nextLine().trim();
+        var petsEncontrados = repository.buscarPorNome(nomePet);
 
-        ArrayList<Servico> servicos = new ArrayList<>();
+        if (petsEncontrados.isEmpty()) {
+            System.out.println("Pet não encontrado.");
+            return;
+        }
 
-        servicos.add(new Banho());
-        servicos.add(new Tosa());
-        servicos.add(new Consulta());
-        servicos.add(new Vacina());
+        Pet pet = petsEncontrados.get(0);
 
-        for (Servico servico : servicos) {
-            servico.executar(nomePet);
+        for (Servico servico : SERVICOS) {
+            System.out.println(servico.executar(pet));
         }
     }
 
@@ -289,38 +293,51 @@ public class PetShop {
     }
 
     public static void filtrarPetsPorPorte(
-            Scanner sc, ArrayList<Pet> lista) {
+            Scanner sc, PetRepository repository) {
 
         System.out.print("Qual porte deseja consultar? ");
         String porteBusca = sc.nextLine().trim();
 
-        boolean encontrou = false;
+        Porte porte;
 
-        for (Pet pet : lista) {
-            if (pet.porte.equalsIgnoreCase(porteBusca)) {
-                mostrarDadosPet(pet);
-                encontrou = true;
-            }
+        try {
+            porte = Porte.aPartirDaDescricao(porteBusca);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Porte inválido.");
+            return;
         }
 
-        if (!encontrou) {
+        var petsEncontrados = repository.buscarPorPorte(porte);
+
+        for (Pet pet : petsEncontrados) {
+            mostrarDadosPet(pet);
+        }
+
+        if (petsEncontrados.isEmpty()) {
             System.out.println(
                     "Nenhum pet encontrado para esse porte."
             );
         }
     }
 
-    public static void atenderTodos(ArrayDeque<String> fila) {
-        if (fila.isEmpty()) {
+    public static void atenderTodos(FilaBanho fila) {
+        if (fila.estaVazia()) {
             System.out.println("A fila de banho está vazia!");
             return;
         }
 
-        while (!fila.isEmpty()) {
-            String pet = fila.poll();
-            System.out.println("Atendendo: " + pet);
+        Pet pet;
+        while ((pet = fila.proximo()) != null) {
+            System.out.println("Atendendo: " + pet.getNome());
         }
 
         System.out.println("Todos os pets foram atendidos!");
+    }
+
+    private static String nomesDaFila(FilaBanho fila) {
+        return fila.listar().stream()
+                .map(Pet::getNome)
+                .toList()
+                .toString();
     }
 }
